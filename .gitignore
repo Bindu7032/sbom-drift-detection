@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+venv/
+sbom/*.json
+.env
+.vscode/
