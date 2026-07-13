@@ -4,3 +4,8 @@ venv/
 sbom/*.json
 .env
 .vscode/
+sbom/runtime-container.tar
+sbom/*.tar
+sbom/baseline-sbom.json
+sbom/runtime-sbom.json
+sbom/drift-report.json
