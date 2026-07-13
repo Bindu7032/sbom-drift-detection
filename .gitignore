@@ -9,3 +9,4 @@ sbom/*.tar
 sbom/baseline-sbom.json
 sbom/runtime-sbom.json
 sbom/drift-report.json
+.env
