@@ -12,26 +12,36 @@ def load_report():
 
 def format_message(report):
     lines = []
-    lines.append("=" * 50)
-    lines.append("🚨 SBOM DRIFT ALERT")
-    lines.append(f"Timestamp: {report['timestamp']}")
-    lines.append("=" * 50)
+    lines.append("=" * 55)
+    lines.append("🚨 SBOM DRIFT DETECTION ALERT")
+    lines.append(f"Timestamp  : {report['timestamp']}")
+    lines.append(f"Risk Score : {report.get('risk_score', 'N/A')}/100 ({report.get('risk_level', 'UNKNOWN')})")
+    lines.append(f"Unauthorized Changes: {report['summary'].get('unauthorized', 0)}")
+    lines.append(f"Authorized Changes  : {report['summary'].get('authorized', 0)}")
+    lines.append("=" * 55)
     if report['added']:
-        lines.append("\nADDED PACKAGES (not in baseline):")
+        lines.append("\nADDED PACKAGES:")
         for pkg, ver in report['added'].items():
-            lines.append(f"  + {pkg} == {ver}")
+            sev = report.get('severity', {}).get(pkg, 'No Known CVEs')
+            auth = report.get('authorization', {}).get(pkg, {}).get('status', 'Unauthorized')
+            lines.append(f"  + {pkg} == {ver} | {sev} | {auth}")
     if report['removed']:
-        lines.append("\nREMOVED PACKAGES (missing from runtime):")
+        lines.append("\nREMOVED PACKAGES:")
         for pkg, ver in report['removed'].items():
-            lines.append(f"  - {pkg} == {ver}")
+            sev = report.get('severity', {}).get(pkg, 'No Known CVEs')
+            auth = report.get('authorization', {}).get(pkg, {}).get('status', 'Unauthorized')
+            lines.append(f"  - {pkg} == {ver} | {sev} | {auth}")
     if report['changed']:
-        lines.append("\nCHANGED PACKAGES (version mismatch):")
+        lines.append("\nCHANGED PACKAGES:")
         for pkg, versions in report['changed'].items():
-            lines.append(f"  ~ {pkg}: {versions['baseline']} -> {versions['runtime']}")
-    lines.append(f"\nTotal Added:   {report['summary']['total_added']}")
-    lines.append(f"Total Removed: {report['summary']['total_removed']}")
-    lines.append(f"Total Changed: {report['summary']['total_changed']}")
-    lines.append("=" * 50)
+            sev = report.get('severity', {}).get(pkg, 'No Known CVEs')
+            cves = len(report.get('cves', {}).get(pkg, []))
+            auth = report.get('authorization', {}).get(pkg, {}).get('status', 'Unauthorized')
+            lines.append(f"  ~ {pkg}: {versions['baseline']} -> {versions['runtime']} | {sev} | CVEs: {cves} | {auth}")
+    lines.append(f"\nTotal Drift    : {report['summary']['total_drift']}")
+    lines.append(f"High/Critical  : {report.get('high_critical_cves', 0)} CVEs")
+    lines.append(f"Risk Level     : {report.get('risk_level', 'UNKNOWN')}")
+    lines.append("=" * 55)
     return "\n".join(lines)
 
 def send_slack_alert(message):

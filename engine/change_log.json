@@ -1,0 +1,11 @@
+{
+  "authorized_changes": [
+    {
+      "name": "chardet",
+      "version": "3.0.4",
+      "reason": "Approved dependency addition - CAB-2001",
+      "approved_by": "Security Team",
+      "date": "2026-07-14"
+    }
+  ]
+}
