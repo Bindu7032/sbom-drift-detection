@@ -452,12 +452,36 @@
 
 </div>
 
+
+
+<!-- MITRE ATT&CK PANEL -->
+<div class="section" id="section-mitre">
+    <div class="section-header" style="background:#1a0f2e;color:#a855f7;cursor:pointer;" onclick="toggleMitre()">
+        <i class="fa-solid fa-crosshairs"></i> MITRE ATT&CK Mapping — Technique Analysis
+        <span id="mitre-toggle" style="margin-left:auto;font-size:12px;color:#8b949e;">▼ Click to expand</span>
+    </div>
+    <div id="mitre-container" style="padding:20px;display:none;">
+        <div style="color:#8b949e;font-size:13px;">Loading MITRE ATT&CK data...</div>
+    </div>
+</div>
+
+<!-- TIMELINE -->
+<div class="section" id="section-timeline">
+    <div class="section-header" style="background:#1a1f2e;color:#58a6ff;cursor:pointer;" onclick="toggleTimeline()">
+        <i class="fa-solid fa-timeline"></i> Security Investigation Timeline<br><span style="font-size:10px;font-weight:400;color:#8b949e;">End-to-end forensic sequence of SBOM generation, runtime analysis, drift detection and incident notification.</span>
+        <span id="timeline-toggle" style="margin-left:auto;font-size:12px;color:#8b949e;">▼ Click to expand</span>
+    </div>
+    <div id="timeline-container" style="padding:20px;display:none;">
+        <div style="color:#8b949e;font-size:13px;">Loading timeline...</div>
+    </div>
+</div>
+
 <div class="footer">
     Real-Time SBOM Drift Detection Platform &nbsp;|&nbsp; Syft &nbsp;•&nbsp; Grype &nbsp;•&nbsp; CycloneDX 1.7 &nbsp;•&nbsp; Python &nbsp;•&nbsp; Docker &nbsp;•&nbsp; GitHub Actions
 </div>
 
 <script>
-let countdown = 15;
+let countdown = 60;
 const counter = document.getElementById('refresh-counter');
 setInterval(() => {
     countdown--;
@@ -545,6 +569,239 @@ document.getElementById('pkgModal').addEventListener('click', function(e) {
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') closeModal();
 });
+
+
+function toggleMitre() {
+    var container = document.getElementById('mitre-container');
+    var toggle = document.getElementById('mitre-toggle');
+    if (container.style.display === 'none') {
+        container.style.display = 'block';
+        toggle.textContent = '▲ Click to collapse';
+        sessionStorage.setItem('mitreOpen', 'true');
+        loadMitre();
+    } else {
+        container.style.display = 'none';
+        toggle.textContent = '▼ Click to expand';
+        sessionStorage.setItem('mitreOpen', 'false');
+    }
+}
+
+function loadMitre() {
+    fetch('/mitre')
+        .then(r => r.json())
+        .then(data => {
+            const container = document.getElementById('mitre-container');
+            const techniques = data.techniques || [];
+            const summary = data.summary || {};
+            if (!techniques.length) {
+                container.innerHTML = '<div style="color:#8b949e;">No MITRE techniques mapped.</div>';
+                return;
+            }
+
+            const tacticColors = {
+                'Initial Access': '#f85149',
+                'Persistence': '#e3b341',
+                'Privilege Escalation / Defense Evasion': '#ff8c00',
+                'Defense Evasion': '#ff8c00',
+                'Impact': '#f85149'
+            };
+
+            const confColors = { 'High': '#f85149', 'Medium': '#ff8c00', 'Low': '#8b949e' };
+            const confBorder = { 'High': '#f85149', 'Medium': '#ff8c00', 'Low': '#444' };
+
+            // Summary bar
+            let html = `<div style="background:#21262d;border:1px solid #30363d;border-radius:8px;padding:14px 20px;margin-bottom:16px;display:flex;gap:32px;flex-wrap:wrap;">
+                <div><div style="font-size:10px;color:#8b949e;text-transform:uppercase;">ATT&CK Techniques</div><div style="font-size:20px;font-weight:700;color:#a855f7;">${summary.total_techniques || techniques.length}</div></div>
+                <div><div style="font-size:10px;color:#8b949e;text-transform:uppercase;">Tactics Covered</div><div style="font-size:20px;font-weight:700;color:#a855f7;">${summary.total_tactics || 4}</div></div>
+                <div><div style="font-size:10px;color:#8b949e;text-transform:uppercase;">Highest Confidence</div><div style="font-size:16px;font-weight:700;color:#f85149;">${summary.highest_confidence || 'High'}</div></div>
+                <div><div style="font-size:10px;color:#8b949e;text-transform:uppercase;">Primary Risk</div><div style="font-size:13px;font-weight:700;color:#f85149;">${summary.primary_risk || 'Supply Chain Compromise'}</div></div>
+            </div>`;
+
+            // Primary threat scenario
+            html += `<div style="background:#1c0f1c;border:1px solid #a855f7;border-radius:8px;padding:14px 20px;margin-bottom:16px;">
+                <div style="font-size:11px;color:#8b949e;text-transform:uppercase;margin-bottom:6px;">Primary Threat Scenario</div>
+                <div style="font-size:14px;font-weight:700;color:#a855f7;margin-bottom:8px;">${summary.primary_scenario || 'Supply Chain Compromise via Runtime Dependency Modification'}</div>
+                <div style="font-size:11px;color:#8b949e;margin-bottom:8px;">Recommended Investigation Steps:</div>
+                <div style="font-size:12px;color:#c9d1d9;">
+                    1. Validate build pipeline integrity and CI/CD configuration &nbsp;|&nbsp;
+                    2. Verify running container image digest against approved baseline &nbsp;|&nbsp;
+                    3. Remove unauthorized packages and redeploy from trusted image
+                </div>
+            </div>`;
+
+            // Note
+            html += `<div style="margin-bottom:16px;padding:10px 16px;background:#21262d;border-radius:6px;font-size:11px;color:#8b949e;">
+                <i class="fa-solid fa-circle-info" style="color:#a855f7;margin-right:6px;"></i>
+                ${techniques.length} MITRE ATT&CK techniques mapped from observed dependency drift.
+                Mappings are rule-based and intended to support investigation — not confirm attacker presence.
+            </div>`;
+
+            html += '<div style="display:grid;gap:12px;">';
+            techniques.forEach(t => {
+                const tacticColor = tacticColors[t.tactic] || '#8b949e';
+                const confColor = confColors[t.confidence] || '#8b949e';
+                const borderColor = confBorder[t.confidence] || '#444';
+
+                html += `
+                <div style="background:#21262d;border:1px solid #30363d;border-left:3px solid ${borderColor};border-radius:8px;padding:14px 16px;">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+                        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                            <span style="font-size:13px;font-weight:700;color:#a855f7;font-family:monospace;">${t.id}</span>
+                            <span style="font-size:13px;font-weight:700;color:#f0f6fc;">${t.name}</span>
+                            <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;background:${confColor}22;color:${confColor};border:1px solid ${confColor};">${t.confidence} Confidence</span>
+                        </div>
+                        <span style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:4px;background:${tacticColor}22;color:${tacticColor};border:1px solid ${tacticColor};">${t.tactic}</span>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px;">
+                        <div>
+                            <div style="font-size:10px;color:#8b949e;text-transform:uppercase;margin-bottom:4px;">Observation</div>
+                            <div style="font-size:12px;color:#c9d1d9;">${t.observation}</div>
+                        </div>
+                        <div>
+                            <div style="font-size:10px;color:#8b949e;text-transform:uppercase;margin-bottom:4px;">Assessment</div>
+                            <div style="font-size:12px;color:#c9d1d9;">${t.assessment}</div>
+                        </div>
+                    </div>
+                    <div style="margin-bottom:10px;">
+                        <div style="font-size:10px;color:#8b949e;text-transform:uppercase;margin-bottom:4px;">Evidence</div>
+                        <div style="font-size:12px;color:#58a6ff;font-family:monospace;">${(t.evidence || []).join(' | ')}</div>
+                    </div>
+                    <div style="font-size:11px;color:#8b949e;padding-top:8px;border-top:1px solid #30363d;">
+                        <i class="fa-solid fa-shield" style="color:#a855f7;margin-right:4px;"></i>
+                        <strong style="color:#c9d1d9;">Recommendation:</strong> ${t.recommendation}
+                    </div>
+                </div>`;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        });
+}
+
+window.addEventListener('load', function() {
+    if (sessionStorage.getItem('mitreOpen') === 'true') {
+        var container = document.getElementById('mitre-container');
+        var toggle = document.getElementById('mitre-toggle');
+        container.style.display = 'block';
+        toggle.textContent = '▲ Click to collapse';
+        loadMitre();
+    }
+});
+
+function toggleTimeline() {
+    var container = document.getElementById('timeline-container');
+    var toggle = document.getElementById('timeline-toggle');
+    if (container.style.display === 'none') {
+        container.style.display = 'block';
+        toggle.textContent = '▲ Click to collapse';
+        sessionStorage.setItem('timelineOpen', 'true');
+        loadTimeline();
+    } else {
+        container.style.display = 'none';
+        toggle.textContent = '▼ Click to expand';
+        sessionStorage.setItem('timelineOpen', 'false');
+    }
+}
+
+// Restore timeline state after refresh
+window.addEventListener('load', function() {
+    if (sessionStorage.getItem('timelineOpen') === 'true') {
+        var container = document.getElementById('timeline-container');
+        var toggle = document.getElementById('timeline-toggle');
+        container.style.display = 'block';
+        toggle.textContent = '▲ Click to collapse';
+        loadTimeline();
+    }
+});
+
+// Load and render timeline
+function loadTimeline() {
+    fetch('/timeline')
+        .then(r => r.json())
+        .then(data => {
+            const events = data.events || data;
+            const summary = data.summary || {};
+            const container = document.getElementById('timeline-container');
+            if (!events || events.length === 0) {
+                container.innerHTML = '<div style="color:#8b949e;font-size:13px;">No timeline events found.</div>';
+                return;
+            }
+
+            const icons = {
+                'SBOM_GENERATED':     { icon: 'fa-file-code',           color: '#58a6ff', label: 'INFO' },
+                'CONTAINER_DEPLOYED': { icon: 'fa-docker',               color: '#1d63ed', label: 'SUCCESS' },
+                'RUNTIME_SCAN':           { icon: 'fa-magnifying-glass', color: '#3fb950', label: 'INFO' },
+                'RUNTIME_SBOM_COLLECTION': { icon: 'fa-magnifying-glass', color: '#3fb950', label: 'INFO' },
+                'DRIFT_DETECTED':     { icon: 'fa-triangle-exclamation', color: '#f85149', label: 'ALERT' },
+                'ALERT_SENT':         { icon: 'fa-bell',                 color: '#e3b341', label: 'WARNING' },
+                'DASHBOARD_UPDATED':  { icon: 'fa-gauge-high',           color: '#58a6ff', label: 'INFO' },
+                'INCIDENT_OPENED':    { icon: 'fa-shield-exclamation',   color: '#f85149', label: 'CRITICAL' },
+                'INCIDENT_CREATED':   { icon: 'fa-shield-exclamation',   color: '#f85149', label: 'CRITICAL' },
+                'COMPLIANT':          { icon: 'fa-circle-check',         color: '#3fb950', label: 'SUCCESS' }
+            };
+
+            const sevColors = { 'high': '#f85149', 'warning': '#e3b341', 'info': '#3fb950', 'critical': '#ff4444' };
+
+            // Get incident ID from last event if available
+            let incidentId = '';
+            const lastEvent = events[events.length - 1];
+            if (lastEvent && lastEvent.details && lastEvent.details.incident_id) {
+                incidentId = lastEvent.details.incident_id;
+            }
+
+            let html = '';
+
+            // Incident header if we have an incident ID
+            if (incidentId) {
+                html += `<div style="background:#1c0f0f;border:1px solid #f85149;border-radius:8px;padding:14px 20px;margin-bottom:20px;display:flex;gap:32px;flex-wrap:wrap;">
+                    <div><div style="font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;">Incident ID</div><div style="font-size:14px;color:#f85149;font-weight:700;font-family:monospace;">${incidentId}</div></div>
+                    <div><div style="font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;">Started</div><div style="font-size:13px;color:#f0f6fc;">${events[0].timestamp}</div></div>
+                    <div><div style="font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;">Status</div><div style="font-size:13px;color:#e3b341;">Open</div></div>
+                    <div><div style="font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;">Priority</div><div style="font-size:13px;color:#f85149;">High</div></div>
+                </div>`;
+            }
+
+            html += '<div style="position:relative;padding-left:44px;">';
+            html += '<div style="position:absolute;left:18px;top:0;bottom:0;width:2px;background:#30363d;"></div>';
+
+            events.forEach((event, idx) => {
+                const meta = icons[event.event_type] || { icon: 'fa-circle', color: '#8b949e', label: 'INFO' };
+                const isLast = idx === events.length - 1;
+                const labelColor = sevColors[event.severity] || '#3fb950';
+
+                html += `
+                <div style="position:relative;margin-bottom:${isLast ? '0' : '8px'};">
+                    <div style="position:absolute;left:-34px;top:6px;width:30px;height:30px;border-radius:50%;background:#0d1117;border:2px solid ${meta.color};display:flex;align-items:center;justify-content:center;">
+                        <i class="fa-solid ${meta.icon}" style="color:${meta.color};font-size:11px;"></i>
+                    </div>
+                    <div style="background:#21262d;border:1px solid #30363d;border-radius:8px;padding:12px 16px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                            <div style="display:flex;align-items:center;gap:10px;">
+                                <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;background:${labelColor}22;color:${labelColor};border:1px solid ${labelColor};">${meta.label}</span>
+                                <span style="font-size:13px;font-weight:700;color:#f0f6fc;">${event.event_type.replace(/_/g, ' ')}</span>
+                            </div>
+                            <span style="font-size:11px;color:#8b949e;font-family:'Courier New',monospace;">${event.timestamp}</span>
+                        </div>
+                        <div style="font-size:12px;color:#c9d1d9;margin-bottom:8px;">${event.description}</div>
+                        ${Object.keys(event.details).length > 0 ?
+                            '<div style="display:flex;flex-wrap:wrap;gap:16px;">' +
+                            Object.entries(event.details).map(([k,v]) =>
+                                `<div><span style="font-size:10px;color:#8b949e;text-transform:uppercase;display:block;">${k.replace(/_/g,' ')}</span><span style="font-size:12px;color:#c9d1d9;">${v}</span></div>`
+                            ).join('') +
+                            '</div>' : ''}
+                    </div>
+                    ${event.duration_to_next ? `<div style="text-align:center;padding:4px 0;font-size:10px;color:#8b949e;"><i class="fa-solid fa-arrow-down" style="color:#30363d;margin-right:4px;"></i>${event.duration_to_next}</div>` : ''}
+                </div>`;
+            });
+
+            html += '</div>';
+            container.innerHTML = html;
+        })
+        .catch(e => {
+            document.getElementById('timeline-container').innerHTML =
+                '<div style="color:#8b949e;">Could not load timeline.</div>';
+        });
+}
+
 </script>
 
 </body>

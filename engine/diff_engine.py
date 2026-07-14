@@ -1,6 +1,10 @@
 import json
 import os
 from datetime import datetime
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from timeline import log_event, clear_timeline
+from mitre_attack import map_techniques, save_mitre_report
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -230,6 +234,33 @@ def main():
     print(f"Risk Level:         {risk_level}")
     print(f"High/Critical CVEs: {high_critical_cves}")
     print("=" * 60)
+
+    # MITRE ATT&CK mapping
+    techniques, mitre_summary = map_techniques({'added': added, 'removed': removed, 'changed': changed})
+    save_mitre_report(techniques, mitre_summary)
+    print(f"\n🎯 MITRE ATT&CK: {len(techniques)} techniques mapped | Primary Risk: {mitre_summary['primary_risk']}")
+
+    # Log events to timeline
+    clear_timeline()
+    log_event('SBOM_GENERATED', 'Baseline SBOM generated during CI/CD build', 'info',
+              {'packages': baseline_count, 'format': 'CycloneDX 1.7', 'tool': 'Syft'})
+    log_event('CONTAINER_DEPLOYED', 'Application deployed as Docker container', 'info',
+              {'image': 'sbom-demo:v1', 'platform': 'Docker'})
+    log_event('RUNTIME_SCAN', 'Runtime SBOM extracted from running container', 'info',
+              {'packages': runtime_count, 'format': 'CycloneDX 1.7'})
+    if added or removed or changed:
+        log_event('DRIFT_DETECTED', f'Dependency drift detected — {len(added)+len(removed)+len(changed)} changes found',
+                  'high' if risk_level in ['HIGH','CRITICAL'] else 'medium',
+                  {'total_drift': len(added)+len(removed)+len(changed),
+                   'unauthorized': sum(1 for v in authorization.values() if v['status']=='Unauthorized'),
+                   'authorized': sum(1 for v in authorization.values() if v['status']=='Authorized'),
+                   'risk_score': risk_score, 'risk_level': risk_level})
+        log_event('ALERT_SENT', 'Slack notification sent to security team', 'info',
+                  {'channel': '#sbom-alerts', 'risk_level': risk_level})
+    else:
+        log_event('COMPLIANT', 'No drift detected — system is compliant', 'info', {})
+    log_event('DASHBOARD_UPDATED', 'Security dashboard updated with findings', 'info',
+              {'risk_score': risk_score, 'risk_level': risk_level})
 
     save_report(added, removed, changed, severity_map, cve_map, cvss_map,
                 fix_map, risk_score, risk_level, baseline_count, runtime_count,
