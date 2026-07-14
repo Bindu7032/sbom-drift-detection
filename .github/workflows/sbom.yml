@@ -1,0 +1,61 @@
+name: SBOM Generation Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  generate-sbom:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Docker image
+        run: docker build -t sbom-demo:v1 .
+
+      - name: Install Syft
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sudo sh -s -- -b /usr/local/bin
+
+      - name: Generate Baseline SBOM
+        run: |
+          syft sbom-demo:v1 -o cyclonedx-json > baseline-sbom.json
+          echo "✅ Baseline SBOM generated"
+
+      - name: Install Grype
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sudo sh -s -- -b /usr/local/bin
+
+      - name: Scan SBOM for vulnerabilities
+        run: |
+          grype sbom:baseline-sbom.json --output table || true
+          echo "✅ Vulnerability scan complete"
+
+      - name: Upload Baseline SBOM as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: baseline-sbom
+          path: baseline-sbom.json
+          retention-days: 30
+
+      - name: Display SBOM summary
+        run: |
+          echo "📦 SBOM Generation Complete"
+          echo "Format: CycloneDX JSON"
+          echo "Tool: Syft"
+          python3 -c "
+          import json
+          with open('baseline-sbom.json') as f:
+              data = json.load(f)
+          components = data.get('components', [])
+          print(f'Total components detected: {len(components)}')
+          libs = [c for c in components if c.get('type') == 'library']
+          print(f'Library packages: {len(libs)}')
+          "
