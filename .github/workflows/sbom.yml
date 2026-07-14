@@ -12,10 +12,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Build Docker image
         run: docker build -t sbom-demo:v1 .
@@ -39,7 +39,7 @@ jobs:
           echo "✅ Vulnerability scan complete"
 
       - name: Upload Baseline SBOM as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: baseline-sbom
           path: baseline-sbom.json
