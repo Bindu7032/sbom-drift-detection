@@ -6,6 +6,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from timeline import log_event, clear_timeline
 from mitre_attack import map_techniques, save_mitre_report
 from compliance import evaluate_compliance, save_compliance_report
+from ai_summary import generate_summary, save_ai_summary
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -267,6 +268,19 @@ def main():
         log_event('COMPLIANT', 'No drift detected — system is compliant', 'info', {})
     log_event('DASHBOARD_UPDATED', 'Security dashboard updated with findings', 'info',
               {'risk_score': risk_score, 'risk_level': risk_level})
+
+    report_data = {
+        'drift_detected': bool(added or removed or changed),
+        'added': added, 'removed': removed, 'changed': changed,
+        'severity': severity_map, 'authorization': authorization,
+        'cves': cve_map, 'risk_score': risk_score, 'risk_level': risk_level,
+        'high_critical_cves': high_critical_cves,
+        'summary': {
+            'total_drift': len(added)+len(removed)+len(changed),
+            'unauthorized': sum(1 for v in authorization.values() if v['status']=='Unauthorized'),
+            'authorized': sum(1 for v in authorization.values() if v['status']=='Authorized')
+        }
+    }
 
     save_report(added, removed, changed, severity_map, cve_map, cvss_map,
                 fix_map, risk_score, risk_level, baseline_count, runtime_count,

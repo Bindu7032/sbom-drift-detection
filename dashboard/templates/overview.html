@@ -27,6 +27,47 @@
 </div>
 {% endif %}
 
+
+{% if ai and ai.summary %}
+<!-- AI INVESTIGATION SUMMARY -->
+<div class="panel" style="margin-bottom:16px;border:1px solid #a855f7;">
+    <div class="panel-header ph-purple">
+        <i class="fa-solid fa-file-shield"></i> Investigation Summary
+        <span style="margin-left:auto;font-size:10px;color:#8b949e;font-weight:400;">Auto-generated from drift analysis · MITRE mapping · Compliance assessment</span>
+    </div>
+    <div style="padding:16px;">
+        <div style="font-size:13px;color:#c9d1d9;line-height:1.7;margin-bottom:14px;">
+            {% set parts = ai.summary.split('.') %}
+            {% for part in parts %}{% if part.strip() %}
+                {% if loop.first %}<strong style="color:#f0f6fc;">{{ part.strip() }}.</strong>
+                {% elif 'Violates' in part %}<span>{{ part.strip().replace('Violates', '<strong>Violates</strong>')|safe }}.</span>
+                {% else %}<span>{{ part.strip() }}.</span>{% endif %}
+            {% endif %}{% endfor %}
+        </div>
+
+        <div style="background:#1a0f2e;border:1px solid #a855f7;border-radius:6px;padding:12px 16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">
+            <div>
+                <div style="font-size:10px;color:#8b949e;text-transform:uppercase;margin-bottom:4px;">Primary Threat Scenario</div>
+                <div style="font-size:13px;color:#a855f7;font-weight:600;">{{ ai.threat_scenario }}</div>
+            </div>
+            {% if ai.confidence %}
+            <span style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:4px;background:#f8514922;color:#f85149;border:1px solid #f85149;white-space:nowrap;">{{ ai.confidence|upper }} CONFIDENCE</span>
+            {% endif %}
+        </div>
+
+        <div>
+            <div style="font-size:10px;color:#8b949e;text-transform:uppercase;margin-bottom:8px;">Recommended Actions</div>
+            {% for action in ai.recommended_actions %}
+            <div style="display:flex;gap:10px;margin-bottom:6px;">
+                <span style="color:#a855f7;font-weight:700;min-width:20px;">{{ loop.index }}.</span>
+                <span style="font-size:12px;color:#c9d1d9;">{{ action }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- KPI CARDS -->
 <div class="cards-grid cards-4">
     <div class="card card-{% if report.summary.total_added > 0 %}green{% else %}gray{% endif %}">

@@ -1,6 +1,6 @@
 import json
 import os
-from flask import Flask, render_template, send_file, jsonify
+from flask import Flask, render_template, send_file, jsonify, Response
 
 app = Flask(__name__)
 
@@ -17,7 +17,8 @@ def load_json(filename):
 @app.route('/')
 def overview():
     report = load_json('drift-report.json')
-    return render_template('overview.html', report=report, page='overview')
+    ai = load_json('ai-summary.json')
+    return render_template('overview.html', report=report, ai=ai, page='overview')
 
 @app.route('/packages')
 def packages():
@@ -42,6 +43,18 @@ def timeline_page():
     data = load_json('timeline.json')
     timeline = data if isinstance(data, dict) and 'events' in data else {'events': data if isinstance(data, list) else [], 'summary': {}}
     return render_template('timeline.html', report=report, timeline=timeline, page='timeline')
+
+@app.route('/report')
+def investigation_report():
+    import sys
+    sys.path.insert(0, os.path.join(BASE_DIR, 'engine'))
+    from report_generator import generate_html_report
+    html = generate_html_report()
+    return Response(html, mimetype='text/html')
+
+@app.route('/api/ai-summary')
+def ai_summary():
+    return jsonify(load_json('ai-summary.json'))
 
 @app.route('/api/report')
 def api_report():

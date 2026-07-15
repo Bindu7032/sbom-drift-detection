@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SBOM Drift Investigation Report — N/A</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI',Arial,sans-serif; background:#fff; color:#1a1a1a; font-size:13px; }
+  .page { max-width:900px; margin:0 auto; padding:40px; }
+
+  .cover { text-align:center; padding:60px 0 40px; border-bottom:3px solid #1a1a1a; margin-bottom:40px; }
+  .cover .product { font-size:11px; color:#666; text-transform:uppercase; letter-spacing:2px; margin-bottom:12px; }
+  .cover h1 { font-size:28px; font-weight:700; color:#1a1a1a; margin-bottom:8px; }
+  .cover .incident { font-size:14px; color:#666; margin-bottom:20px; }
+  .cover .meta { display:flex; justify-content:center; gap:40px; margin-top:20px; }
+  .cover .meta-item .label { font-size:10px; color:#999; text-transform:uppercase; }
+  .cover .meta-item .value { font-size:13px; font-weight:600; color:#1a1a1a; margin-top:3px; }
+
+  .risk-badge { display:inline-block; padding:8px 24px; border-radius:4px; font-size:14px; font-weight:700; color:#fff; background:#ff8c00; margin-top:16px; }
+
+  h2 { font-size:16px; font-weight:700; color:#1a1a1a; margin:32px 0 12px; padding-bottom:6px; border-bottom:2px solid #e0e0e0; }
+  h3 { font-size:13px; font-weight:700; color:#333; margin:16px 0 8px; }
+
+  .summary-box { background:#f8f8f8; border-left:4px solid #ff8c00; padding:16px 20px; border-radius:4px; margin-bottom:20px; }
+  .summary-box p { font-size:13px; color:#333; line-height:1.7; margin-bottom:10px; }
+  .summary-box .threat { font-size:12px; font-weight:600; color:#666; margin-top:8px; }
+  .summary-box .threat span { color:#ff8c00; }
+
+  .kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
+  .kpi { background:#f8f8f8; border:1px solid #e0e0e0; border-radius:6px; padding:14px; text-align:center; }
+  .kpi .num { font-size:28px; font-weight:700; }
+  .kpi .lbl { font-size:10px; color:#999; text-transform:uppercase; margin-top:4px; }
+
+  table { width:100%; border-collapse:collapse; margin-bottom:20px; font-size:12px; }
+  thead th { background:#1a1a1a; color:#fff; padding:9px 12px; text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; }
+  tbody td { padding:9px 12px; border-bottom:1px solid #e0e0e0; }
+  tbody tr:nth-child(even) { background:#f9f9f9; }
+
+  .pill { display:inline-block; padding:2px 8px; border-radius:3px; font-size:10px; font-weight:700; }
+  .pill-red { background:#fff0f0; color:#c0392b; border:1px solid #f85149; }
+  .pill-orange { background:#fff8f0; color:#d35400; border:1px solid #ff8c00; }
+  .pill-yellow { background:#fffdf0; color:#b7950b; border:1px solid #e3b341; }
+  .pill-green { background:#f0fff4; color:#1e8449; border:1px solid #3fb950; }
+  .pill-gray { background:#f5f5f5; color:#666; border:1px solid #ccc; }
+
+  .mitre-card { background:#f8f8f8; border:1px solid #e0e0e0; border-left:4px solid #6c3483; border-radius:4px; padding:14px; margin-bottom:10px; }
+  .mitre-id { font-size:12px; font-weight:700; color:#6c3483; font-family:monospace; }
+  .mitre-name { font-size:13px; font-weight:700; color:#1a1a1a; margin-left:8px; }
+  .mitre-tactic { font-size:10px; font-weight:700; padding:2px 8px; border-radius:3px; background:#e8d5f0; color:#6c3483; }
+  .mitre-conf { font-size:10px; font-weight:700; padding:2px 8px; border-radius:3px; margin-left:6px; }
+  .conf-high { background:#fde8e8; color:#c0392b; }
+  .conf-medium { background:#fef3e2; color:#d35400; }
+  .conf-low { background:#f5f5f5; color:#666; }
+  .mitre-label { font-size:10px; color:#999; text-transform:uppercase; margin-top:8px; margin-bottom:2px; }
+  .mitre-text { font-size:12px; color:#333; }
+
+  .timeline-item { display:flex; gap:16px; margin-bottom:12px; }
+  .timeline-dot { width:10px; height:10px; border-radius:50%; margin-top:4px; flex-shrink:0; }
+  .timeline-content { flex:1; padding-bottom:12px; border-bottom:1px solid #eee; }
+  .timeline-title { font-size:12px; font-weight:700; color:#1a1a1a; }
+  .timeline-time { font-size:10px; color:#999; margin-top:2px; }
+  .timeline-desc { font-size:12px; color:#555; margin-top:3px; }
+  .timeline-duration { font-size:10px; color:#999; font-style:italic; margin-top:4px; }
+
+  .actions ol { padding-left:20px; }
+  .actions li { font-size:12px; color:#333; margin-bottom:6px; line-height:1.5; }
+
+  .footer { margin-top:40px; padding-top:16px; border-top:1px solid #e0e0e0; display:flex; justify-content:space-between; font-size:10px; color:#999; }
+
+  @media print {
+    body { background:#fff; }
+    .page { padding:20px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- COVER -->
+<div class="cover">
+  <div class="product">SBOM Drift Detection Platform</div>
+  <h1>Security Investigation Report</h1>
+  <div class="incident">Incident ID: <strong>N/A</strong></div>
+  <div class="risk-badge">HIGH RISK — 53/100</div>
+  <div class="meta">
+    <div class="meta-item"><div class="label">Generated</div><div class="value">2026-07-15 05:43:23</div></div>
+    <div class="meta-item"><div class="label">Scan Timestamp</div><div class="value">2026-07-15 05:25:55</div></div>
+    <div class="meta-item"><div class="label">Platform</div><div class="value">Docker · Syft · Grype</div></div>
+    <div class="meta-item"><div class="label">SBOM Format</div><div class="value">CycloneDX 1.7</div></div>
+  </div>
+</div>
+
+<!-- EXECUTIVE SUMMARY -->
+<h2>1. Executive Summary</h2>
+<div class="summary-box">
+  <p>4 runtime dependency drifts detected (3 unauthorized, 1 authorized). Version downgrades introduced 5 High/Critical CVEs. Observed behavior is consistent with a potential Supply Chain Compromise. Impacts 5 controls across NIST SSDF, CIS Docker Benchmark, NTIA SBOM, and CycloneDX standards.</p>
+  <div class="threat">Primary Threat Scenario: <span>Supply Chain Compromise via Runtime Dependency Modification</span></div>
+</div>
+
+<!-- KPIs -->
+<div class="kpi-grid">
+  <div class="kpi"><div class="num" style="color:#ff8c00;">53/100</div><div class="lbl">Risk Score</div></div>
+  <div class="kpi"><div class="num" style="color:#f85149;">3</div><div class="lbl">Unauthorized Changes</div></div>
+  <div class="kpi"><div class="num" style="color:#ff8c00;">5</div><div class="lbl">High/Critical CVEs</div></div>
+  <div class="kpi"><div class="num" style="color:#6c3483;">5</div><div class="lbl">MITRE Techniques</div></div>
+</div>
+
+<!-- DRIFT FINDINGS -->
+<h2>2. Runtime Drift Findings</h2>
+<p style="color:#666;margin-bottom:12px;">Baseline: 122 packages &nbsp;·&nbsp; Runtime: 123 packages &nbsp;·&nbsp; Drift: 4 changes</p>
+<h3>Added Packages</h3><table><thead><tr><th>Package</th><th>Runtime Version</th><th>Severity</th><th>CVEs</th><th>Authorization</th></tr></thead><tbody><tr><td><strong>chardet</strong></td><td>3.0.4</td><td>None</td><td>0</td><td><span class='pill pill-green'>Authorized</span></td></tr></tbody></table><h3>Version Changes</h3><table><thead><tr><th>Package</th><th>Baseline</th><th>Runtime</th><th>Severity</th><th>CVEs</th><th>Authorization</th></tr></thead><tbody><tr><td><strong>idna</strong></td><td>3.18</td><td>2.7</td><td><span class='pill pill-gray'>None</span></td><td>0</td><td><span class='pill pill-red'>Unauthorized</span></td></tr><tr><td><strong>requests</strong></td><td>2.28.0</td><td>2.20.0</td><td><span class='pill pill-yellow'>Medium</span></td><td>4</td><td><span class='pill pill-red'>Unauthorized</span></td></tr><tr><td><strong>urllib3</strong></td><td>1.26.20</td><td>1.24.3</td><td><span class='pill pill-orange'>High</span></td><td>5</td><td><span class='pill pill-red'>Unauthorized</span></td></tr></tbody></table><h2>3. MITRE ATT&CK Mapping</h2><div class="mitre-card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+    <div><span class="mitre-id">T1195.001</span><span class="mitre-name">Supply Chain Compromise: Compromise Software Dependencies</span></div>
+    <div><span class="mitre-tactic">Initial Access</span><span class="mitre-conf conf-high">High Confidence</span></div>
+  </div>
+  <div class="mitre-label">Observation</div><div class="mitre-text">Unauthorized package introduced into runtime environment after deployment.</div>
+  <div class="mitre-label">Assessment</div><div class="mitre-text">Behavior is consistent with supply chain dependency compromise.</div>
+  <div class="mitre-label">Recommendation</div><div class="mitre-text">Validate build pipeline integrity. Verify image digest. Remove unauthorized package and redeploy from trusted baseline.</div>
+</div><div class="mitre-card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+    <div><span class="mitre-id">T1554</span><span class="mitre-name">Compromise Host Software Binary</span></div>
+    <div><span class="mitre-tactic">Persistence</span><span class="mitre-conf conf-medium">Medium Confidence</span></div>
+  </div>
+  <div class="mitre-label">Observation</div><div class="mitre-text">New package not present in approved baseline detected in running container.</div>
+  <div class="mitre-label">Assessment</div><div class="mitre-text">Potentially consistent with host software modification for persistent access. Requires further investigation.</div>
+  <div class="mitre-label">Recommendation</div><div class="mitre-text">Inspect package contents. Verify package source and integrity. Check for unauthorized process execution.</div>
+</div><div class="mitre-card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+    <div><span class="mitre-id">T1574</span><span class="mitre-name">Hijack Execution Flow</span></div>
+    <div><span class="mitre-tactic">Privilege Escalation / Defense Evasion</span><span class="mitre-conf conf-medium">Medium Confidence</span></div>
+  </div>
+  <div class="mitre-label">Observation</div><div class="mitre-text">Package version downgraded from approved baseline to older version in running container.</div>
+  <div class="mitre-label">Assessment</div><div class="mitre-text">Potentially consistent with execution flow hijacking via vulnerable dependency substitution. Requires confirmation.</div>
+  <div class="mitre-label">Recommendation</div><div class="mitre-text">Restore approved package versions. Scan for CVEs in downgraded versions. Review runtime process behaviour.</div>
+</div><div class="mitre-card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+    <div><span class="mitre-id">T1195.002</span><span class="mitre-name">Supply Chain Compromise: Compromise Software Supply Chain</span></div>
+    <div><span class="mitre-tactic">Initial Access</span><span class="mitre-conf conf-high">High Confidence</span></div>
+  </div>
+  <div class="mitre-label">Observation</div><div class="mitre-text">Package version changed from approved build-time baseline without authorized change record.</div>
+  <div class="mitre-label">Assessment</div><div class="mitre-text">Behavior is consistent with software supply chain tampering post-deployment.</div>
+  <div class="mitre-label">Recommendation</div><div class="mitre-text">Compare runtime image against build-time digest. Initiate incident response. Block further deployments pending review.</div>
+</div><div class="mitre-card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+    <div><span class="mitre-id">T1036</span><span class="mitre-name">Masquerading</span></div>
+    <div><span class="mitre-tactic">Defense Evasion</span><span class="mitre-conf conf-low">Low Confidence</span></div>
+  </div>
+  <div class="mitre-label">Observation</div><div class="mitre-text">Unauthorized version substitution detected — package present under same name with different version.</div>
+  <div class="mitre-label">Assessment</div><div class="mitre-text">Potentially consistent with masquerading via unauthorized dependency version substitution. Low confidence without further evidence.</div>
+  <div class="mitre-label">Recommendation</div><div class="mitre-text">Verify package hash against trusted registry. Review package changelog for malicious modifications.</div>
+</div><h2>4. Compliance Assessment</h2><p style='margin-bottom:12px;'>Compliance Score: <strong>0%</strong> &nbsp;·&nbsp; Violated: <strong style='color:#f85149;'>5</strong> &nbsp;·&nbsp; Compliant: <strong style='color:#3fb950;'>2</strong></p><h3>NIST Secure Software Development Framework (SSDF) <span style='font-weight:400;color:#999;font-size:11px;'>SP 800-218</span></h3><table><thead><tr><th>Control</th><th>Title</th><th>Status</th><th>Reason</th></tr></thead><tbody><tr><td><span class='pill' style='background:#f8514922;color:#f85149;border:1px solid #f85149;'>PW.4</span></td><td>Reuse Existing, Well-Secured Software</td><td><span class='pill' style='background:#f8514922;color:#f85149;border:1px solid #f85149;'>VIOLATED</span></td><td style='font-size:11px;color:#555;'>Unauthorized dependency changes detected in runtime environment not present in approved baseline.</td></tr><tr><td><span class='pill' style='background:#ff8c0022;color:#ff8c00;border:1px solid #ff8c00;'>PO.3</span></td><td>Implement Supporting Toolchains</td><td><span class='pill' style='background:#ff8c0022;color:#ff8c00;border:1px solid #ff8c00;'>PARTIAL</span></td><td style='font-size:11px;color:#555;'>SBOM generated at build time but runtime validation gap detected.</td></tr><tr><td><span class='pill' style='background:#f8514922;color:#f85149;border:1px solid #f85149;'>RV.1</span></td><td>Identify and Confirm Vulnerabilities</td><td><span class='pill' style='background:#f8514922;color:#f85149;border:1px solid #f85149;'>VIOLATED</span></td><td style='font-size:11px;color:#555;'>Runtime dependency changes introduced packages with known CVEs without detection.</td></tr></tbody></table><h3>CIS Docker Benchmark <span style='font-weight:400;color:#999;font-size:11px;'>v1.6.0</span></h3><table><thead><tr><th>Control</th><th>Title</th><th>Status</th><th>Reason</th></tr></thead><tbody><tr><td><span class='pill' style='background:#e3b34122;color:#e3b341;border:1px solid #e3b341;'>4.1</span></td><td>Ensure a user for the container has been created</td><td><span class='pill' style='background:#e3b34122;color:#e3b341;border:1px solid #e3b341;'>REVIEW</span></td><td style='font-size:11px;color:#555;'>Package modifications executed as root user inside container.</td></tr><tr><td><span class='pill' style='background:#e3b34122;color:#e3b341;border:1px solid #e3b341;'>4.6</span></td><td>Ensure that HEALTHCHECK instructions have been added to container images</td><td><span class='pill' style='background:#e3b34122;color:#e3b341;border:1px solid #e3b341;'>REVIEW</span></td><td style='font-size:11px;color:#555;'>Runtime dependency drift may affect container health checks.</td></tr><tr><td><span class='pill' style='background:#f8514922;color:#f85149;border:1px solid #f85149;'>5.7</span></td><td>Ensure privileged ports are not mapped within containers</td><td><span class='pill' style='background:#f8514922;color:#f85149;border:1px solid #f85149;'>VIOLATED</span></td><td style='font-size:11px;color:#555;'>Unauthorized package addition may expose privileged services.</td></tr></tbody></table><h3>NTIA Minimum Elements for SBOM <span style='font-weight:400;color:#999;font-size:11px;'>EO 14028 — 2021</span></h3><table><thead><tr><th>Control</th><th>Title</th><th>Status</th><th>Reason</th></tr></thead><tbody><tr><td><span class='pill' style='background:#3fb95022;color:#3fb950;border:1px solid #3fb950;'>ME.1</span></td><td>Supplier Name</td><td><span class='pill' style='background:#3fb95022;color:#3fb950;border:1px solid #3fb950;'>COMPLIANT</span></td><td style='font-size:11px;color:#555;'>Build-time SBOM includes supplier information via Syft and CycloneDX format.</td></tr><tr><td><span class='pill' style='background:#f8514922;color:#f85149;border:1px solid #f85149;'>ME.6</span></td><td>Dependency Relationships</td><td><span class='pill' style='background:#f8514922;color:#f85149;border:1px solid #f85149;'>VIOLATED</span></td><td style='font-size:11px;color:#555;'>Runtime SBOM differs from build-time SBOM — dependency relationships are no longer accurate.</td></tr><tr><td><span class='pill' style='background:#3fb95022;color:#3fb950;border:1px solid #3fb950;'>ME.7</span></td><td>Author of SBOM Data</td><td><span class='pill' style='background:#3fb95022;color:#3fb950;border:1px solid #3fb950;'>COMPLIANT</span></td><td style='font-size:11px;color:#555;'>SBOM generated by Syft with CycloneDX format includes authorship metadata.</td></tr></tbody></table><h3>CycloneDX SBOM Standard <span style='font-weight:400;color:#999;font-size:11px;'>v1.7</span></h3><table><thead><tr><th>Control</th><th>Title</th><th>Status</th><th>Reason</th></tr></thead><tbody><tr><td><span class='pill' style='background:#f8514922;color:#f85149;border:1px solid #f85149;'>CDX.1</span></td><td>Component Inventory Accuracy</td><td><span class='pill' style='background:#f8514922;color:#f85149;border:1px solid #f85149;'>VIOLATED</span></td><td style='font-size:11px;color:#555;'>Runtime component inventory does not match build-time SBOM — drift detected.</td></tr><tr><td><span class='pill' style='background:#ff8c0022;color:#ff8c00;border:1px solid #ff8c00;'>CDX.2</span></td><td>Vulnerability Association</td><td><span class='pill' style='background:#ff8c0022;color:#ff8c00;border:1px solid #ff8c00;'>PARTIAL</span></td><td style='font-size:11px;color:#555;'>Grype vulnerability scan completed but runtime drift introduced unscanned packages.</td></tr></tbody></table><h2>5. Investigation Timeline</h2><h2>6. Recommended Actions</h2><div class='actions'><ol><li>Verify whether unauthorized dependency changes were introduced by an authorized administrator or by an external threat actor.</li><li>Restore all downgraded packages to their approved baseline versions.</li><li>Compare the runtime container image digest against the approved build-time baseline.</li><li>If unauthorized changes are confirmed, redeploy from the trusted build-time image.</li><li>Review CI/CD pipeline access logs for signs of unauthorized modification.</li></ol></div>
+<div class="footer">
+  <span>SBOM Drift Detection Platform &nbsp;·&nbsp; Prototype v1.0 &nbsp;·&nbsp; Powered by Syft · Grype · CycloneDX 1.7</span>
+  <span>Generated: 2026-07-15 05:43:23</span>
+</div>
+
+</div>
+</body>
+</html>
