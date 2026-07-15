@@ -25,7 +25,7 @@ python3 engine/diff_engine.py
 # Step 3 - Send Slack alert
 echo ""
 echo "📢 Step 3: Sending Slack alert..."
-SLACK_WEBHOOK_URL="https://hooks.slack.com/services/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" python3 alerts/alert.py
+source .env 2>/dev/null; python3 alerts/alert.py
 
 echo ""
 echo "=============================================="
