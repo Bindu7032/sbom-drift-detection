@@ -168,15 +168,22 @@ def evaluate_compliance(report):
 
     overall = 'VIOLATED' if summary['VIOLATED'] > 0 else 'REVIEW' if summary['REVIEW'] > 0 else 'PARTIAL' if summary['PARTIAL'] > 0 else 'COMPLIANT'
 
-    return results, summary, overall
+    total = sum(summary.values())
+    compliant_count = summary.get('COMPLIANT', 0) + summary.get('PARTIAL', 0) * 0.5
+    compliance_score = int((compliant_count / total) * 100) if total > 0 else 0
+    overall_label = 'Needs Remediation' if summary['VIOLATED'] > 0 else 'Needs Review' if summary['REVIEW'] > 0 else 'Partially Compliant' if summary['PARTIAL'] > 0 else 'Compliant'
 
-def save_compliance_report(results, summary, overall):
+    return results, summary, overall, compliance_score, overall_label
+
+def save_compliance_report(results, summary, overall, compliance_score=0, overall_label=""):
     path = os.path.join(BASE_DIR, 'sbom', 'compliance-report.json')
     with open(path, 'w') as f:
         json.dump({
             'results': results,
             'summary': summary,
-            'overall_status': overall
+            'overall_status': overall,
+            'compliance_score': compliance_score,
+            'overall_label': overall_label
         }, f, indent=2)
 
 if __name__ == '__main__':
@@ -184,11 +191,12 @@ if __name__ == '__main__':
     with open(report_path) as f:
         report = json.load(f)
 
-    results, summary, overall = evaluate_compliance(report)
-    save_compliance_report(results, summary, overall)
+    results, summary, overall, score, label = evaluate_compliance(report)
+    save_compliance_report(results, summary, overall, score, label)
 
     print(f"\nCompliance Assessment Complete")
-    print(f"Overall Status: {overall}")
+    print(f"Overall Status: {overall} — {label}")
+    print(f"Compliance Score: {score}%")
     print(f"Violated: {summary['VIOLATED']} | Review: {summary['REVIEW']} | Partial: {summary['PARTIAL']} | Compliant: {summary['COMPLIANT']}")
     print()
     for fw in results:
