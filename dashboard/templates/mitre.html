@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-header">
+    <h2>MITRE ATT&CK Mapping</h2>
+    <p>Rule-based technique mapping from observed dependency drift — intended to support investigation, not confirm attacker presence</p>
+</div>
+
+{% if mitre and mitre.techniques %}
+{% set summary = mitre.summary or {} %}
+
+<div class="cards-grid cards-4" style="margin-bottom:16px;">
+    <div class="card card-purple">
+        <div class="card-number text-purple">{{ summary.total_techniques or mitre.total }}</div>
+        <div class="card-title">ATT&CK Techniques</div>
+        <div class="card-sub">Rule-based mappings</div>
+    </div>
+    <div class="card card-purple">
+        <div class="card-number text-purple">{{ summary.total_tactics or 4 }}</div>
+        <div class="card-title">Tactics Covered</div>
+        <div class="card-sub">Across kill chain</div>
+    </div>
+    <div class="card card-red">
+        <div class="card-number text-red">{{ summary.highest_confidence or 'High' }}</div>
+        <div class="card-title">Highest Confidence</div>
+        <div class="card-sub">Mapping confidence</div>
+    </div>
+    <div class="card card-orange">
+        <div class="card-number" style="font-size:16px;" class="text-orange">{{ summary.primary_risk or 'Supply Chain' }}</div>
+        <div class="card-title">Primary Risk</div>
+        <div class="card-sub">Identified threat category</div>
+    </div>
+</div>
+
+<div class="panel" style="margin-bottom:16px;">
+    <div class="panel-header ph-purple"><i class="fa-solid fa-crosshairs"></i> Primary Threat Scenario</div>
+    <div style="padding:16px;">
+        <div style="font-size:14px;font-weight:700;color:#a855f7;margin-bottom:8px;">{{ summary.primary_scenario or 'Supply Chain Compromise via Runtime Dependency Modification' }}</div>
+        <div style="font-size:11px;color:#8b949e;margin-bottom:10px;">Recommended Investigation Steps:</div>
+        <div style="font-size:12px;color:#c9d1d9;">
+            1. Validate build pipeline integrity and CI/CD configuration &nbsp;·&nbsp;
+            2. Verify running container image digest against approved baseline &nbsp;·&nbsp;
+            3. Remove unauthorized packages and redeploy from trusted image
+        </div>
+    </div>
+</div>
+
+{% for t in mitre.techniques %}
+{% set conf_color = '#f85149' if t.confidence=='High' else '#ff8c00' if t.confidence=='Medium' else '#8b949e' %}
+{% set tactic_color = '#f85149' if 'Initial Access' in t.tactic else '#e3b341' if 'Persistence' in t.tactic else '#ff8c00' if 'Escalation' in t.tactic or 'Evasion' in t.tactic else '#f85149' %}
+<div class="panel" style="border-left:3px solid {{ conf_color }};margin-bottom:12px;">
+    <div style="padding:14px 16px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <span style="font-size:13px;font-weight:700;color:#a855f7;font-family:monospace;">{{ t.id }}</span>
+                <span style="font-size:13px;font-weight:700;color:#f0f6fc;">{{ t.name }}</span>
+                <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;background:{{ conf_color }}22;color:{{ conf_color }};border:1px solid {{ conf_color }};">{{ t.confidence }} Confidence</span>
+            </div>
+            <span style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:4px;background:{{ tactic_color }}22;color:{{ tactic_color }};border:1px solid {{ tactic_color }};">{{ t.tactic }}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:10px;">
+            <div>
+                <div style="font-size:10px;color:#8b949e;text-transform:uppercase;margin-bottom:3px;">Observation</div>
+                <div style="font-size:12px;color:#c9d1d9;">{{ t.observation }}</div>
+            </div>
+            <div>
+                <div style="font-size:10px;color:#8b949e;text-transform:uppercase;margin-bottom:3px;">Assessment</div>
+                <div style="font-size:12px;color:#c9d1d9;">{{ t.assessment }}</div>
+            </div>
+        </div>
+        <div style="margin-bottom:10px;">
+            <div style="font-size:10px;color:#8b949e;text-transform:uppercase;margin-bottom:3px;">Evidence</div>
+            <div style="font-size:12px;color:#58a6ff;font-family:monospace;">{{ t.evidence|join(' | ') if t.evidence else 'N/A' }}</div>
+        </div>
+        <div style="font-size:11px;color:#8b949e;padding-top:8px;border-top:1px solid #30363d;">
+            <i class="fa-solid fa-shield" style="color:#a855f7;margin-right:4px;"></i>
+            <strong style="color:#c9d1d9;">Recommendation:</strong> {{ t.recommendation }}
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+{% else %}
+<div class="panel"><div style="padding:20px;color:#8b949e;">No MITRE data available. Run the diff engine first.</div></div>
+{% endif %}
+
+{% endblock %}

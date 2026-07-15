@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-header">
+    <h2>Executive Overview</h2>
+    <p>Real-time supply chain integrity status — last scan {{ report.timestamp if report else 'N/A' }}</p>
+</div>
+
+{% if report %}
+
+{% if report.drift_detected %}
+<div class="alert alert-danger">
+    <div>
+        <div class="alert-title"><i class="fa-solid fa-triangle-exclamation"></i> &nbsp;Runtime Dependency Drift Detected</div>
+        <div class="alert-desc">{{ report.summary.total_drift }} dependency changes detected — {{ report.summary.unauthorized }} unauthorized, {{ report.summary.authorized }} authorized. Review before approving deployment.</div>
+        <div style="font-size:11px;color:#58a6ff;margin-top:6px;"><i class="fa-regular fa-clock"></i> &nbsp;{{ report.timestamp }}</div>
+    </div>
+    <div class="alert-badge badge-{{ report.risk_level|lower }}">{{ report.risk_level }}</div>
+</div>
+{% else %}
+<div class="alert alert-success">
+    <div>
+        <div class="alert-title"><i class="fa-solid fa-circle-check"></i> &nbsp;System Compliant — No Drift Detected</div>
+        <div class="alert-desc">Runtime inventory matches the approved build-time SBOM.</div>
+    </div>
+    <div class="alert-badge badge-low">COMPLIANT</div>
+</div>
+{% endif %}
+
+<!-- KPI CARDS -->
+<div class="cards-grid cards-4">
+    <div class="card card-{% if report.summary.total_added > 0 %}green{% else %}gray{% endif %}">
+        <div class="card-number text-green">{{ report.summary.total_added }}</div>
+        <div class="card-title">Added Packages</div>
+        <div class="card-sub">New — not in baseline</div>
+    </div>
+    <div class="card card-yellow">
+        <div class="card-number text-yellow">{{ report.summary.total_drift }}</div>
+        <div class="card-title">Total Drift</div>
+        <div class="card-sub">{{ report.summary.unauthorized }} unauthorized · {{ report.summary.authorized }} authorized</div>
+    </div>
+    <div class="card card-red">
+        <div class="card-number text-red">{{ report.high_critical_cves }}</div>
+        <div class="card-title">High / Critical CVEs</div>
+        <div class="card-sub">In drifted packages</div>
+    </div>
+    <div class="card card-blue">
+        <div class="card-number" style="font-size:24px;" class="text-{% if report.risk_level == 'CRITICAL' %}red{% elif report.risk_level == 'HIGH' %}orange{% elif report.risk_level == 'MEDIUM' %}yellow{% else %}green{% endif %}">
+            <span class="{% if report.risk_level == 'CRITICAL' %}text-red{% elif report.risk_level == 'HIGH' %}text-orange{% elif report.risk_level == 'MEDIUM' %}text-yellow{% else %}text-green{% endif %}">{{ report.risk_score }}/100</span>
+        </div>
+        <div class="card-title">Overall Risk Score</div>
+        <div class="card-sub text-{% if report.risk_level == 'CRITICAL' %}red{% elif report.risk_level == 'HIGH' %}orange{% else %}yellow{% endif %}">{{ report.risk_level }}</div>
+        <div class="risk-bar-bg"><div class="risk-bar-fill" style="width:{{ report.risk_score }}%;background:{% if report.risk_level == 'CRITICAL' %}#f85149{% elif report.risk_level == 'HIGH' %}#ff8c00{% elif report.risk_level == 'MEDIUM' %}#e3b341{% else %}#3fb950{% endif %};"></div></div>
+    </div>
+</div>
+
+<!-- SCAN INFO + AUTHORIZATION -->
+<div class="two-col">
+    <div class="panel">
+        <div class="panel-header ph-blue"><i class="fa-solid fa-magnifying-glass"></i> Scan Information</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);padding:16px;gap:16px;">
+            <div style="text-align:center;"><div style="font-size:22px;font-weight:700;color:#58a6ff;">{{ report.baseline_packages }}</div><div style="font-size:10px;color:#8b949e;text-transform:uppercase;">Baseline Packages</div></div>
+            <div style="text-align:center;"><div style="font-size:22px;font-weight:700;color:#58a6ff;">{{ report.runtime_packages }}</div><div style="font-size:10px;color:#8b949e;text-transform:uppercase;">Runtime Packages</div></div>
+            <div style="text-align:center;"><div style="font-size:22px;font-weight:700;color:#58a6ff;">{{ report.summary.total_drift }}</div><div style="font-size:10px;color:#8b949e;text-transform:uppercase;">Drift Findings</div></div>
+            <div style="text-align:center;"><div style="font-size:14px;font-weight:700;color:#58a6ff;">Docker</div><div style="font-size:10px;color:#8b949e;text-transform:uppercase;">Platform</div></div>
+            <div style="text-align:center;"><div style="font-size:14px;font-weight:700;color:#58a6ff;">CycloneDX</div><div style="font-size:10px;color:#8b949e;text-transform:uppercase;">Format</div></div>
+            <div style="text-align:center;"><div style="font-size:14px;font-weight:700;color:#58a6ff;">Syft</div><div style="font-size:10px;color:#8b949e;text-transform:uppercase;">Scanner</div></div>
+        </div>
+    </div>
+    <div class="panel">
+        <div class="panel-header ph-gray"><i class="fa-solid fa-scale-balanced"></i> Authorization Summary</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;">
+            <div style="text-align:center;padding:20px;border-right:1px solid #30363d;">
+                <div style="font-size:40px;font-weight:700;color:#f85149;">{{ report.summary.unauthorized }}</div>
+                <div style="font-size:11px;color:#8b949e;text-transform:uppercase;">Unauthorized</div>
+            </div>
+            <div style="text-align:center;padding:20px;">
+                <div style="font-size:40px;font-weight:700;color:#3fb950;">{{ report.summary.authorized }}</div>
+                <div style="font-size:11px;color:#8b949e;text-transform:uppercase;">Authorized</div>
+            </div>
+        </div>
+        <div style="border-top:1px solid #30363d;padding:12px 16px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div style="font-size:11px;color:#8b949e;"><i class="fa-solid fa-satellite-dish" style="color:#58a6ff;margin-right:5px;"></i>Runtime Monitoring <span style="color:#3fb950;float:right;">ACTIVE</span></div>
+            <div style="font-size:11px;color:#8b949e;"><i class="fa-brands fa-docker" style="color:#1d63ed;margin-right:5px;"></i>Container <span style="color:#3fb950;float:right;">ONLINE</span></div>
+            <div style="font-size:11px;color:#8b949e;"><i class="fa-brands fa-slack" style="color:#e01e5a;margin-right:5px;"></i>Slack Alerts <span style="color:#3fb950;float:right;">CONNECTED</span></div>
+            <div style="font-size:11px;color:#8b949e;"><i class="fa-solid fa-gears" style="color:#e3b341;margin-right:5px;"></i>Diff Engine <span style="color:#3fb950;float:right;">RUNNING</span></div>
+        </div>
+    </div>
+</div>
+
+<!-- QUICK ACTIONS -->
+<div class="panel">
+    <div class="panel-header ph-gray"><i class="fa-solid fa-bolt"></i> Quick Actions</div>
+    <div style="padding:16px;display:flex;gap:12px;flex-wrap:wrap;">
+        <a href="/packages" class="btn btn-primary"><i class="fa-solid fa-box"></i> View Drift Findings</a>
+        <a href="/mitre" class="btn btn-secondary"><i class="fa-solid fa-crosshairs"></i> MITRE ATT&CK</a>
+        <a href="/compliance" class="btn btn-secondary"><i class="fa-solid fa-shield-check"></i> Compliance Report</a>
+        <a href="/timeline" class="btn btn-secondary"><i class="fa-solid fa-timeline"></i> Investigation Timeline</a>
+        <a href="/download" class="btn btn-success"><i class="fa-solid fa-download"></i> Export JSON Report</a>
+    </div>
+</div>
+
+{% endif %}
+{% endblock %}

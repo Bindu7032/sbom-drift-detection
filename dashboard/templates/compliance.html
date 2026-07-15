@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-header">
+    <h2>Compliance Impact Assessment</h2>
+    <p>NIST SSDF · CIS Docker Benchmark · NTIA SBOM · CycloneDX — control evaluation based on detected drift</p>
+</div>
+
+{% if compliance and compliance.results %}
+{% set summary = compliance.summary or {} %}
+{% set score = compliance.compliance_score or 0 %}
+{% set label = compliance.overall_label or compliance.overall_status %}
+{% set score_color = '#3fb950' if score >= 70 else '#e3b341' if score >= 40 else '#f85149' %}
+
+<div class="cards-grid cards-4" style="margin-bottom:16px;">
+    <div class="card card-blue">
+        <div class="card-number" style="font-size:36px;color:{{ score_color }};">{{ score }}%</div>
+        <div class="card-title">Compliance Score</div>
+        <div class="card-sub">{{ label }}</div>
+        <div class="risk-bar-bg"><div class="risk-bar-fill" style="width:{{ score }}%;background:{{ score_color }};"></div></div>
+    </div>
+    <div class="card card-red">
+        <div class="card-number text-red">{{ summary.VIOLATED or 0 }}</div>
+        <div class="card-title">Violated</div>
+        <div class="card-sub">Controls requiring action</div>
+    </div>
+    <div class="card card-yellow">
+        <div class="card-number text-yellow">{{ (summary.REVIEW or 0) + (summary.PARTIAL or 0) }}</div>
+        <div class="card-title">Review / Partial</div>
+        <div class="card-sub">Controls needing review</div>
+    </div>
+    <div class="card card-green">
+        <div class="card-number text-green">{{ summary.COMPLIANT or 0 }}</div>
+        <div class="card-title">Compliant</div>
+        <div class="card-sub">Controls satisfied</div>
+    </div>
+</div>
+
+{% for fw in compliance.results %}
+{% set sev_color = '#f85149' if fw.severity=='Critical' else '#ff8c00' if fw.severity=='High' else '#e3b341' %}
+<div class="panel" style="margin-bottom:14px;">
+    <div style="background:#161b22;padding:12px 16px;border-bottom:1px solid #30363d;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+            <span style="font-size:13px;font-weight:700;color:#f0f6fc;">{{ fw.framework }}</span>
+            <span style="font-size:11px;color:#8b949e;margin-left:10px;">{{ fw.version }}</span>
+        </div>
+        {% if fw.severity %}
+        <span style="font-size:10px;font-weight:700;padding:2px 10px;border-radius:4px;background:{{ sev_color }}22;color:{{ sev_color }};border:1px solid {{ sev_color }};">{{ fw.severity }} Control</span>
+        {% endif %}
+    </div>
+    {% for ctrl in fw.controls %}
+    {% set c = '#f85149' if ctrl.status=='VIOLATED' else '#e3b341' if ctrl.status=='REVIEW' else '#ff8c00' if ctrl.status=='PARTIAL' else '#3fb950' %}
+    <div style="display:grid;grid-template-columns:130px 1fr 2fr;gap:14px;padding:12px 16px;border-bottom:1px solid #21262d;{% if loop.last %}border-bottom:none;{% endif %}background:{% if loop.index is odd %}#21262d{% else %}#1c2128{% endif %};">
+        <div>
+            <span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;background:{{ c }}22;color:{{ c }};border:1px solid {{ c }};">{{ ctrl.status }}</span>
+            <div style="font-size:11px;color:#a855f7;font-family:monospace;margin-top:4px;">{{ ctrl.id }}</div>
+        </div>
+        <div>
+            <div style="font-size:12px;font-weight:600;color:#f0f6fc;">{{ ctrl.title }}</div>
+            <div style="font-size:11px;color:#8b949e;margin-top:2px;">{{ ctrl.description }}</div>
+        </div>
+        <div style="font-size:12px;color:#c9d1d9;">{{ ctrl.reason }}</div>
+    </div>
+    {% endfor %}
+</div>
+{% endfor %}
+
+{% else %}
+<div class="panel"><div style="padding:20px;color:#8b949e;">No compliance data. Run the diff engine first.</div></div>
+{% endif %}
+
+{% endblock %}

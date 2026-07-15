@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-header">
+    <h2>Security Investigation Timeline</h2>
+    <p>End-to-end forensic sequence of SBOM generation, runtime analysis, drift detection and incident notification</p>
+</div>
+
+{% if timeline and timeline.events %}
+{% set summary = timeline.summary or {} %}
+
+{% if summary.incident_id %}
+<div style="background:#1c0f0f;border:1px solid #f85149;border-radius:8px;padding:14px 20px;margin-bottom:16px;display:flex;gap:28px;flex-wrap:wrap;align-items:center;">
+    <div><div style="font-size:10px;color:#8b949e;text-transform:uppercase;">Incident ID</div><div style="font-size:14px;color:#f85149;font-weight:700;font-family:monospace;">{{ summary.incident_id }}</div></div>
+    <div><div style="font-size:10px;color:#8b949e;text-transform:uppercase;">Severity</div><div style="font-size:13px;color:#ff8c00;font-weight:700;">{{ summary.severity or 'HIGH' }}</div></div>
+    <div><div style="font-size:10px;color:#8b949e;text-transform:uppercase;">Risk Score</div><div style="font-size:13px;color:#ff8c00;font-weight:700;">{{ summary.risk_score or 'N/A' }}</div></div>
+    <div><div style="font-size:10px;color:#8b949e;text-transform:uppercase;">Status</div><div style="font-size:13px;color:#e3b341;font-weight:700;">🟠 {{ summary.status or 'Investigating' }}</div></div>
+    <div><div style="font-size:10px;color:#8b949e;text-transform:uppercase;">Owner</div><div style="font-size:13px;color:#f0f6fc;">{{ summary.owner or 'SOC Analyst' }}</div></div>
+    <div><div style="font-size:10px;color:#8b949e;text-transform:uppercase;">Container</div><div style="font-size:13px;color:#f0f6fc;font-family:monospace;">{{ summary.container or 'N/A' }}</div></div>
+    <div><div style="font-size:10px;color:#8b949e;text-transform:uppercase;">Detection Time</div><div style="font-size:13px;color:#3fb950;font-weight:700;">{{ summary.incident_duration or 'N/A' }}</div></div>
+</div>
+
+<div style="background:#21262d;border:1px solid #30363d;border-radius:8px;padding:12px 20px;margin-bottom:16px;display:flex;gap:28px;flex-wrap:wrap;">
+    <div><div style="font-size:10px;color:#8b949e;text-transform:uppercase;">Duration</div><div style="font-size:16px;font-weight:700;color:#f0f6fc;">{{ summary.duration_seconds or 0 }}s</div></div>
+    <div><div style="font-size:10px;color:#8b949e;text-transform:uppercase;">Events</div><div style="font-size:16px;font-weight:700;color:#f0f6fc;">{{ summary.total_events or timeline.events|length }}</div></div>
+    <div><div style="font-size:10px;color:#8b949e;text-transform:uppercase;">Unauthorized</div><div style="font-size:16px;font-weight:700;color:#f85149;">{{ summary.unauthorized or 0 }}</div></div>
+    <div><div style="font-size:10px;color:#8b949e;text-transform:uppercase;">Risk</div><div style="font-size:16px;font-weight:700;color:#ff8c00;">{{ summary.risk_level or 'HIGH' }}</div></div>
+    <div><div style="font-size:10px;color:#8b949e;text-transform:uppercase;">Status</div><div style="font-size:16px;font-weight:700;color:#e3b341;">🟠 {{ summary.status or 'Investigating' }}</div></div>
+</div>
+{% endif %}
+
+<div class="timeline-wrap">
+    <div class="timeline-line"></div>
+    {% for event in timeline.events %}
+    {% set icon = 'fa-file-code' if event.event_type=='SBOM_GENERATED' else 'fa-docker' if event.event_type=='CONTAINER_DEPLOYED' else 'fa-magnifying-glass' if 'SCAN' in event.event_type or 'SBOM_COLLECTION' in event.event_type else 'fa-triangle-exclamation' if event.event_type=='DRIFT_DETECTED' else 'fa-bell' if event.event_type=='ALERT_SENT' else 'fa-shield-exclamation' if 'INCIDENT' in event.event_type else 'fa-gauge-high' %}
+    {% set icolor = '#f85149' if event.severity=='high' or event.severity=='critical' else '#e3b341' if event.severity=='warning' else '#3fb950' if event.severity=='success' else '#58a6ff' %}
+    <div class="timeline-event">
+        <div class="timeline-icon" style="border:2px solid {{ icolor }};">
+            <i class="fa-solid {{ icon }}" style="color:{{ icolor }};font-size:11px;"></i>
+        </div>
+        <div class="timeline-card">
+            <div class="timeline-card-header">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    {% set slabel = 'ALERT' if event.severity=='high' else 'WARNING' if event.severity=='warning' else 'SUCCESS' if event.severity=='success' else 'CRITICAL' if event.severity=='critical' else 'INFO' %}
+                    <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;background:{{ icolor }}22;color:{{ icolor }};border:1px solid {{ icolor }};">{{ slabel }}</span>
+                    <span class="timeline-event-title">{{ event.event_type.replace('_',' ') }}</span>
+                </div>
+                <span class="timeline-time">{{ event.timestamp }}</span>
+            </div>
+            <div class="timeline-desc">{{ event.description }}</div>
+            {% if event.details %}
+            <div class="timeline-meta">
+                {% for k, v in event.details.items() %}
+                <div class="timeline-meta-item">
+                    <span class="k">{{ k.replace('_',' ') }}</span>
+                    <span class="v">{{ v }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% if event.duration_to_next %}
+        <div class="timeline-duration"><i class="fa-solid fa-arrow-down" style="color:#30363d;margin-right:3px;"></i>{{ event.duration_to_next }}</div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+
+{% else %}
+<div class="panel"><div style="padding:20px;color:#8b949e;">No timeline data. Run the diff engine first.</div></div>
+{% endif %}
+
+{% endblock %}

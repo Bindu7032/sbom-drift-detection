@@ -5,6 +5,7 @@ import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from timeline import log_event, clear_timeline
 from mitre_attack import map_techniques, save_mitre_report
+from compliance import evaluate_compliance, save_compliance_report
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -239,6 +240,11 @@ def main():
     techniques, mitre_summary = map_techniques({'added': added, 'removed': removed, 'changed': changed})
     save_mitre_report(techniques, mitre_summary)
     print(f"\n🎯 MITRE ATT&CK: {len(techniques)} techniques mapped | Primary Risk: {mitre_summary['primary_risk']}")
+
+    # Compliance mapping
+    compliance_results, compliance_summary, overall_status = evaluate_compliance({'added': added, 'removed': removed, 'changed': changed})
+    save_compliance_report(compliance_results, compliance_summary, overall_status)
+    print(f"📋 Compliance: {overall_status} | Violated: {compliance_summary['VIOLATED']} | Compliant: {compliance_summary['COMPLIANT']}")
 
     # Log events to timeline
     clear_timeline()

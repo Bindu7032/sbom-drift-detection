@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-header">
+    <h2>Runtime Drift Analysis</h2>
+    <p>Dependency changes detected between build-time baseline and runtime container</p>
+</div>
+
+{% if report %}
+
+<div style="display:flex;gap:10px;margin-bottom:16px;align-items:center;">
+    <button class="btn btn-secondary" id="btn-all" onclick="filterTable('all')">All</button>
+    <button class="btn btn-secondary" id="btn-added" onclick="filterTable('added')">➕ Added</button>
+    <button class="btn btn-secondary" id="btn-changed" onclick="filterTable('changed')">🔄 Changed</button>
+    <button class="btn btn-secondary" id="btn-removed" onclick="filterTable('removed')">➖ Removed</button>
+    <input class="search-box" type="text" placeholder="🔍 Search package..." oninput="searchPackages(this.value)" style="margin-left:auto;">
+</div>
+
+{% if report.added %}
+<div class="panel" id="section-added">
+    <div class="panel-header ph-green"><i class="fa-solid fa-circle-plus"></i> Added Packages — Not present in build-time baseline</div>
+    <table>
+        <thead><tr><th>Package</th><th>Runtime Version</th><th>Severity</th><th>CVEs</th><th>Authorization</th><th>Status</th></tr></thead>
+        <tbody>
+        {% for pkg, ver in report.added.items() %}
+        {% set sev = report.severity.get(pkg, 'None') %}
+        {% set auth = report.authorization.get(pkg, {}).get('status', 'Unauthorized') %}
+        <tr class="pkg-row" data-type="added" onclick="showModal('{{ pkg }}','Not in baseline','{{ ver }}','Added','{{ report.timestamp }}','{{ sev }}','{{ auth }}',{{ report.cves.get(pkg,[])|tojson }})">
+            <td class="mono">{{ pkg }}</td>
+            <td class="mono">{{ ver }}</td>
+            <td>{% if sev=='Critical' %}<span class="pill pill-red">🔴 CRITICAL</span>{% elif sev=='High' %}<span class="pill pill-orange">🟠 HIGH</span>{% elif sev=='Medium' %}<span class="pill pill-yellow">🟡 MEDIUM</span>{% elif sev=='Low' %}<span class="pill pill-green">🟢 LOW</span>{% else %}<span class="pill pill-gray">⚪ No Known CVEs</span>{% endif %}</td>
+            <td style="color:#8b949e;">{{ report.cves.get(pkg,[])|length }}</td>
+            <td>{% if auth=='Authorized' %}<span class="pill pill-green">✅ AUTHORIZED</span>{% else %}<span class="pill pill-red">❌ UNAUTHORIZED</span>{% endif %}</td>
+            <td><span class="pill pill-green">+ ADDED</span></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% if report.changed %}
+<div class="panel" id="section-changed">
+    <div class="panel-header ph-gray" style="background:#1e1a0f;color:#e3b341;"><i class="fa-solid fa-rotate"></i> Version Changes — Mismatch between baseline and runtime</div>
+    <table>
+        <thead><tr><th>Package</th><th>Baseline</th><th>Runtime</th><th>Severity</th><th>CVEs</th><th>Authorization</th><th>Status</th></tr></thead>
+        <tbody>
+        {% for pkg, versions in report.changed.items() %}
+        {% set sev = report.severity.get(pkg, 'None') %}
+        {% set auth = report.authorization.get(pkg, {}).get('status', 'Unauthorized') %}
+        <tr class="pkg-row" data-type="changed" onclick="showModal('{{ pkg }}','{{ versions.baseline }}','{{ versions.runtime }}','Version Changed','{{ report.timestamp }}','{{ sev }}','{{ auth }}',{{ report.cves.get(pkg,[])|tojson }})">
+            <td class="mono">{{ pkg }}</td>
+            <td class="mono" style="color:#3fb950;">{{ versions.baseline }}</td>
+            <td class="mono" style="color:#f85149;">{{ versions.runtime }}</td>
+            <td>{% if sev=='Critical' %}<span class="pill pill-red">🔴 CRITICAL</span>{% elif sev=='High' %}<span class="pill pill-orange">🟠 HIGH</span>{% elif sev=='Medium' %}<span class="pill pill-yellow">🟡 MEDIUM</span>{% elif sev=='Low' %}<span class="pill pill-green">🟢 LOW</span>{% else %}<span class="pill pill-gray">⚪ No Known CVEs</span>{% endif %}</td>
+            <td style="color:#8b949e;">{{ report.cves.get(pkg,[])|length }}</td>
+            <td>{% if auth=='Authorized' %}<span class="pill pill-green">✅ AUTHORIZED</span>{% else %}<span class="pill pill-red">❌ UNAUTHORIZED</span>{% endif %}</td>
+            <td><span class="pill pill-yellow">🔄 CHANGED</span></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% if report.removed %}
+<div class="panel" id="section-removed">
+    <div class="panel-header ph-red"><i class="fa-solid fa-circle-minus"></i> Removed Packages — Missing from runtime</div>
+    <table>
+        <thead><tr><th>Package</th><th>Baseline Version</th><th>Severity</th><th>CVEs</th><th>Authorization</th><th>Status</th></tr></thead>
+        <tbody>
+        {% for pkg, ver in report.removed.items() %}
+        {% set sev = report.severity.get(pkg, 'None') %}
+        {% set auth = report.authorization.get(pkg, {}).get('status', 'Unauthorized') %}
+        <tr class="pkg-row" data-type="removed" onclick="showModal('{{ pkg }}','{{ ver }}','Not found','Removed','{{ report.timestamp }}','{{ sev }}','{{ auth }}',{{ report.cves.get(pkg,[])|tojson }})">
+            <td class="mono">{{ pkg }}</td>
+            <td class="mono">{{ ver }}</td>
+            <td>{% if sev=='Critical' %}<span class="pill pill-red">🔴 CRITICAL</span>{% elif sev=='High' %}<span class="pill pill-orange">🟠 HIGH</span>{% elif sev=='Medium' %}<span class="pill pill-yellow">🟡 MEDIUM</span>{% elif sev=='Low' %}<span class="pill pill-green">🟢 LOW</span>{% else %}<span class="pill pill-gray">⚪ No Known CVEs</span>{% endif %}</td>
+            <td style="color:#8b949e;">{{ report.cves.get(pkg,[])|length }}</td>
+            <td>{% if auth=='Authorized' %}<span class="pill pill-green">✅ AUTHORIZED</span>{% else %}<span class="pill pill-red">❌ UNAUTHORIZED</span>{% endif %}</td>
+            <td><span class="pill pill-red">➖ REMOVED</span></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filterTable(type) {
+    ['all','added','changed','removed'].forEach(t => {
+        var b = document.getElementById('btn-'+t);
+        if (b) b.style.background = '#21262d';
+    });
+    var ab = document.getElementById('btn-'+type);
+    if (ab) ab.style.background = '#58a6ff';
+    ['added','changed','removed'].forEach(s => {
+        var el = document.getElementById('section-'+s);
+        if (!el) return;
+        el.style.display = (type==='all'||type===s) ? 'block' : 'none';
+    });
+}
+function searchPackages(q) {
+    document.querySelectorAll('.pkg-row').forEach(row => {
+        var name = row.querySelector('td').textContent.toLowerCase();
+        row.style.display = (!q || name.includes(q.toLowerCase())) ? '' : 'none';
+    });
+}
+</script>
+{% endblock %}

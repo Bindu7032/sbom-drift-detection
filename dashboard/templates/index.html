@@ -454,6 +454,18 @@
 
 
 
+
+<!-- COMPLIANCE PANEL -->
+<div class="section" id="section-compliance">
+    <div class="section-header" style="background:#0f1e0f;color:#3fb950;cursor:pointer;" onclick="toggleCompliance()">
+        <i class="fa-solid fa-shield-check"></i> Compliance Impact Assessment — NIST SSDF · CIS Docker · NTIA SBOM · CycloneDX
+        <span id="compliance-toggle" style="margin-left:auto;font-size:12px;color:#8b949e;">▼ Click to expand</span>
+    </div>
+    <div id="compliance-container" style="padding:20px;display:none;">
+        <div style="color:#8b949e;font-size:13px;">Loading compliance data...</div>
+    </div>
+</div>
+
 <!-- MITRE ATT&CK PANEL -->
 <div class="section" id="section-mitre">
     <div class="section-header" style="background:#1a0f2e;color:#a855f7;cursor:pointer;" onclick="toggleMitre()">
@@ -570,6 +582,109 @@ document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') closeModal();
 });
 
+
+
+function toggleCompliance() {
+    var container = document.getElementById('compliance-container');
+    var toggle = document.getElementById('compliance-toggle');
+    if (container.style.display === 'none') {
+        container.style.display = 'block';
+        toggle.textContent = '▲ Click to collapse';
+        sessionStorage.setItem('complianceOpen', 'true');
+        loadCompliance();
+    } else {
+        container.style.display = 'none';
+        toggle.textContent = '▼ Click to expand';
+        sessionStorage.setItem('complianceOpen', 'false');
+    }
+}
+
+function loadCompliance() {
+    fetch('/compliance')
+        .then(r => r.json())
+        .then(data => {
+            const container = document.getElementById('compliance-container');
+            const results = data.results || [];
+            const summary = data.summary || {};
+            const overall = data.overall_status || 'UNKNOWN';
+
+            const statusColors = {
+                'VIOLATED': '#f85149',
+                'REVIEW': '#e3b341',
+                'PARTIAL': '#ff8c00',
+                'COMPLIANT': '#3fb950',
+                'UNKNOWN': '#8b949e'
+            };
+
+            const overallColor = statusColors[overall] || '#8b949e';
+
+            const score = data.compliance_score || 0;
+            const label = data.overall_label || overall;
+            const scoreColor = score >= 70 ? '#3fb950' : score >= 40 ? '#e3b341' : '#f85149';
+
+            // Summary bar
+            let html = `<div style="background:#21262d;border:1px solid #30363d;border-radius:8px;padding:14px 20px;margin-bottom:16px;display:flex;gap:32px;flex-wrap:wrap;align-items:center;">
+                <div>
+                    <div style="font-size:10px;color:#8b949e;text-transform:uppercase;">Compliance Score</div>
+                    <div style="font-size:32px;font-weight:700;color:${scoreColor};">${score}%</div>
+                </div>
+                <div style="width:1px;background:#30363d;align-self:stretch;"></div>
+                <div><div style="font-size:10px;color:#8b949e;text-transform:uppercase;">Overall Status</div><div style="font-size:14px;font-weight:700;color:${overallColor};">${label}</div></div>
+                <div><div style="font-size:10px;color:#8b949e;text-transform:uppercase;">Violated</div><div style="font-size:20px;font-weight:700;color:#f85149;">${summary.VIOLATED || 0}</div></div>
+                <div><div style="font-size:10px;color:#8b949e;text-transform:uppercase;">Under Review</div><div style="font-size:20px;font-weight:700;color:#e3b341;">${summary.REVIEW || 0}</div></div>
+                <div><div style="font-size:10px;color:#8b949e;text-transform:uppercase;">Partial</div><div style="font-size:20px;font-weight:700;color:#ff8c00;">${summary.PARTIAL || 0}</div></div>
+                <div><div style="font-size:10px;color:#8b949e;text-transform:uppercase;">Compliant</div><div style="font-size:20px;font-weight:700;color:#3fb950;">${summary.COMPLIANT || 0}</div></div>
+            </div>`;
+
+            // Frameworks
+            results.forEach(fw => {
+                html += `<div style="background:#21262d;border:1px solid #30363d;border-radius:8px;margin-bottom:12px;overflow:hidden;">
+                    <div style="background:#161b22;padding:12px 16px;border-bottom:1px solid #30363d;display:flex;justify-content:space-between;align-items:center;">
+                        <div>
+                            <span style="font-size:13px;font-weight:700;color:#f0f6fc;">${fw.framework}</span>
+                            <span style="font-size:11px;color:#8b949e;margin-left:10px;">${fw.version}</span>
+                        </div>
+                        ${fw.severity ? `<span style="font-size:10px;font-weight:700;padding:2px 10px;border-radius:4px;
+                            background:${fw.severity==='Critical'?'#f8514922':fw.severity==='High'?'#ff8c0022':'#e3b34122'};
+                            color:${fw.severity==='Critical'?'#f85149':fw.severity==='High'?'#ff8c00':'#e3b341'};
+                            border:1px solid ${fw.severity==='Critical'?'#f85149':fw.severity==='High'?'#ff8c00':'#e3b341'};">
+                            ${fw.severity} Control</span>` : ''}
+                    </div>
+                    <div style="padding:0;">`;
+
+                fw.controls.forEach((ctrl, idx) => {
+                    const color = statusColors[ctrl.status] || '#8b949e';
+                    const bg = idx % 2 === 0 ? '#21262d' : '#1c2128';
+                    html += `
+                    <div style="display:grid;grid-template-columns:120px 1fr 2fr;gap:16px;padding:12px 16px;background:${bg};border-bottom:1px solid #30363d;">
+                        <div>
+                            <span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;background:${color}22;color:${color};border:1px solid ${color};">${ctrl.status}</span>
+                            <div style="font-size:11px;color:#a855f7;font-family:monospace;margin-top:4px;">${ctrl.id}</div>
+                        </div>
+                        <div>
+                            <div style="font-size:12px;font-weight:600;color:#f0f6fc;">${ctrl.title}</div>
+                            <div style="font-size:11px;color:#8b949e;margin-top:2px;">${ctrl.description}</div>
+                        </div>
+                        <div style="font-size:12px;color:#c9d1d9;">${ctrl.reason}</div>
+                    </div>`;
+                });
+
+                html += `</div></div>`;
+            });
+
+            container.innerHTML = html;
+        });
+}
+
+window.addEventListener('load', function() {
+    if (sessionStorage.getItem('complianceOpen') === 'true') {
+        var container = document.getElementById('compliance-container');
+        var toggle = document.getElementById('compliance-toggle');
+        container.style.display = 'block';
+        toggle.textContent = '▲ Click to collapse';
+        loadCompliance();
+    }
+});
 
 function toggleMitre() {
     var container = document.getElementById('mitre-container');
